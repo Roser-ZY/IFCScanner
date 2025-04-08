@@ -5,9 +5,9 @@ from pyecharts.options import LabelOpts, InitOpts, TreeItem
 from pyecharts.charts import Tree
 
 class IfcTypeScanner:
-    report_root = "IFCREPRESENTATIONITEM"
+    report_root = "ROOT"
     report_careful_nodes = [
-        "IfcProduct", "IfcRepresentationItem"
+        
     ]
     report_filepath = ""
     class_dict = {}
@@ -15,6 +15,26 @@ class IfcTypeScanner:
     
     def __init__(self, report_filepath):
         self.report_filepath = report_filepath
+    
+    def find(self, directory, target_class, chunk_size=8*1024*1024):
+        print("Find " + target_class + " from " + directory + ".")
+        # WARNING: Read by chunks may miss some type.
+        filenames = os.listdir(directory)
+        target_class_upper = target_class.upper()
+        if len(filenames) == 0:
+            print("There are no IFC files to scan.")
+        for filename in filenames:
+            with open(directory + '\\' + filename, "r") as ifc_file:
+                while True:
+                    chunk_data = ifc_file.read(chunk_size)
+                    if not chunk_data:
+                        break
+                    end = chunk_data.rfind('\n')
+                    if end == -1:
+                        end = len(chunk_data)
+                    for name in re.findall("= IFC[A-Z0-9]*", chunk_data[0:end]):
+                        if name[2:] == target_class_upper:
+                            return filename
     
     def scan(self, inheritance_filepath, directory, chunk_size=8*1024*1024):
         with open(inheritance_filepath, "r") as file:
@@ -42,7 +62,7 @@ class IfcTypeScanner:
             )
         ).add(
             series_name=title,
-            data=[root_node],
+            data=[root_item],
             pos_top="30",
             pos_bottom="30",
             pos_left="50",
